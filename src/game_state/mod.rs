@@ -2,7 +2,6 @@ use sdl2::image::LoadTexture;
 
 use crate::prelude::*;
 
-
 pub struct State {
     pub run: bool,
     bg_colour_offset: u8,
@@ -13,6 +12,10 @@ pub struct State {
     canvas: render::WindowCanvas,
     event_pump: EventPump,
     pub player: Player,
+    pub time_per_frame: time::Duration,
+    pub last_update_delta: time::Duration,
+    clock: time::Instant,
+    statistics: Statistics,
 }
 
 impl State {
@@ -42,6 +45,30 @@ impl State {
             canvas,
             event_pump,
             player: Player::new(),
+            time_per_frame: time::Duration::new(0, FRAMES_PER_SECOND),
+            last_update_delta: time::Duration::from_secs(0),
+            clock: time::Instant::now(),
+            statistics: Statistics::init(),
+        }
+    }
+
+    /* start: start the game loop handling fix time steps */
+    pub fn start(self: &mut Self) {
+        while self.run {
+            self.process_input();
+            self.last_update_delta += self.clock.elapsed();
+            /* gather time information to output frames / second */
+            self.statistics.collect(self.last_update_delta);
+            while self.last_update_delta.as_secs_f64() > self.time_per_frame.as_secs_f64() {
+                self.update();
+                self.render();
+                self.last_update_delta -= self.time_per_frame;
+            }
+            self.last_update_delta += self.clock.elapsed();
+            self.clock = time::Instant::now(); 
+
+            // Lock frame rate at 60 frames per second
+            //::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
         }
     }
 
@@ -54,7 +81,7 @@ impl State {
                     self.run = false;
                 },
                 /* The repeat delay and the repeat rate to control repetitions can be
-                 * configured on most systems. Match only on repeat: false to ignore repeated keys */
+                 * configured on most systems. Match only on "repeat: false" to ignore repeated keys */
                 event::Event::KeyDown { keycode: Some(keyboard::Keycode::W), repeat: false, .. } => {
                     self.player.toggle_movement(Direction::Up);
                     self.player.orientation = Direction::Up;
@@ -91,8 +118,8 @@ impl State {
 
     pub fn update(self: &mut Self) {
         /* update the player sprite, animation, and position */
-        self.player.update_sprite();
         self.player.update_animation_frame();
+        self.player.update_sprite();
         self.player.update_position();
 
         /* oscillate background bg_colour */

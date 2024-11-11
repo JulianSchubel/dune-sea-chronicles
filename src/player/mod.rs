@@ -8,6 +8,8 @@ pub struct Player {
     pub sprite: rect::Rect,
     /* The current animation frame for the player sprite */
     animation_frame: i32,
+    animation_clock: time::Instant,
+    animations_per_second: time::Duration,
     /* Orientation of the player sprite */
     pub orientation: Direction,
     /* The determines magnitude of the players displacement */
@@ -26,6 +28,8 @@ impl Player {
             position: rect::Point::new(0, 0),
             sprite: rect::Rect::new(0, 0, 26, 36),
             animation_frame: 0,
+            animation_clock: time::Instant::now(),
+            animations_per_second: time::Duration::new(0, PLAYER_ANIMATIONS_PER_SECOND),
             orientation: Direction::Up,
             movement_speed: BASE_PLAYER_SPEED,
             moving: false,
@@ -73,14 +77,18 @@ impl Player {
     }
 
     pub fn update_animation_frame(self: &mut Self) {
-        if self.moving_up 
-            || self.moving_down 
-            || self.moving_left 
-            || self.moving_right { 
-            self.animation_frame = (self.animation_frame + 1) % 3
-        } else {
-            self.animation_frame = 0;
-        };
+        let moving: bool = self.moving_up 
+                || self.moving_down 
+                || self.moving_left 
+                || self.moving_right;
+        while self.animation_clock.elapsed() > self.animations_per_second {
+            if moving { 
+                self.animation_frame = (self.animation_frame + 1) % 3
+            } else {
+                self.animation_frame = 0;
+            };
+            self.animation_clock = time::Instant::now();
+        }
     }
 
     pub fn update_position(&mut self) {
