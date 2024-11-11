@@ -83,9 +83,23 @@ impl Player {
                 || self.moving_right;
         while self.animation_clock.elapsed() > self.animations_per_second {
             if moving { 
-                self.animation_frame = (self.animation_frame + 1) % 3
+                match self.orientation {
+                    Direction::Up => {
+                        self.animation_frame = 3 + ((self.animation_frame + 1) % 3);
+                    }
+                    _ => {
+                        self.animation_frame = (self.animation_frame + 1) % 6;
+                    }
+                }
             } else {
-                self.animation_frame = 0;
+                match self.orientation {
+                    Direction::Up => {
+                        self.animation_frame = 3;
+                    }
+                    _ => {
+                        self.animation_frame = 1;
+                    }
+                }
             };
             self.animation_clock = time::Instant::now();
         }
